@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: ai-idea-refinery-backend
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: NODE_ENV
+        value: production
