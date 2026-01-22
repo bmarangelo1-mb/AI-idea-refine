@@ -111,6 +111,40 @@ function extractJSON(text) {
   return null;
 }
 
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+function isRetryableGeminiError(err) {
+  const status = err?.status;
+  return [429, 500, 502, 503, 504].includes(status);
+}
+
+async function generateWithRetry(model, payload, { retries = 4 } = {}) {
+  let lastErr;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await model.generateContent(payload);
+    } catch (err) {
+      lastErr = err;
+
+      if (!isRetryableGeminiError(err) || attempt === retries) {
+        throw err;
+      }
+
+      // Exponential backoff + jitter
+      const base = 500; // ms
+      const backoff = base * Math.pow(2, attempt);
+      const jitter = Math.floor(Math.random() * 250);
+      await sleep(backoff + jitter);
+    }
+  }
+
+  throw lastErr;
+}
+
+
 // POST /api/refine endpoint
 app.post('/api/refine', async (req, res) => {
   try {
@@ -136,14 +170,15 @@ app.post('/api/refine', async (req, res) => {
 
     // Initialize Gemini model and generate
     const model = getGeminiModel();
-    const result = await model.generateContent({
+    const result = await generateWithRetry(model, {
       contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: 1500,
+        maxOutputTokens: 1200, // consider lowering a bit
         responseMimeType: 'application/json',
       },
     });
+    
 
     const response = result.response;
     if (!response?.text) {
