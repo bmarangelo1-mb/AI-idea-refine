@@ -1,24 +1,75 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import OpenAI from 'openai';
+import rateLimit from 'express-rate-limit';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { GoogleGenerativeAI, GoogleGenerativeAIFetchError } from '@google/generative-ai';
 
-dotenv.config();
+// Load .env from backend directory (works regardless of cwd)
+const __dirname = dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: join(__dirname, '.env') });
 
 const app = express();
 const port = process.env.PORT || 3001;
+
+// Rate limiting configuration
+const limiter = rateLimit({
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes default
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 10, // 10 requests per window default
+  message: {
+    error: 'Too many requests',
+    message: 'Too many requests from this IP, please try again later.',
+    retryAfter: Math.ceil((parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000) / 1000),
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// Initialize OpenAI client lazily (only when needed)
-function getOpenAIClient() {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY is not configured');
+// Apply rate limiting to API routes
+app.use('/api/', limiter);
+
+// Initialize Gemini client lazily (only when needed)
+function getGeminiModel() {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY is not configured');
   }
-  return new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+  const genAI = new GoogleGenerativeAI(apiKey);
+  return genAI.getGenerativeModel({
+    model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+    systemInstruction: `You are a world-class startup product strategist.
+
+Take the user's raw idea and transform it into a clear, practical, well-scoped product plan.
+
+You MUST return valid JSON and NOTHING else.
+
+JSON SCHEMA:
+{
+  "title": "string",
+  "short_description": "string",
+  "problem": "string",
+  "solution": "string",
+  "core_features": ["string"],
+  "mvp_scope": ["string"],
+  "suggested_tech_stack": ["string"],
+  "next_steps": ["string"]
+}
+
+RULES:
+- Be concise but insightful
+- Be realistic about MVP scope
+- Avoid buzzwords
+- Make it buildable by a small team
+- Do not include markdown
+- Do not include explanations
+- Do not include code blocks
+- Do not include extra text
+- Output ONLY valid JSON`,
   });
 }
 
@@ -74,68 +125,35 @@ app.post('/api/refine', async (req, res) => {
     }
 
     // Check if API key is configured
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({
         error: 'Server configuration error',
-        message: 'OpenAI API key is not configured',
+        message: 'Gemini API key is not configured',
       });
     }
-
-    // System prompt that enforces strict JSON output
-    const systemPrompt = `You are a world-class startup product strategist.
-
-Take the user's raw idea and transform it into a clear, practical, well-scoped product plan.
-
-You MUST return valid JSON and NOTHING else.
-
-JSON SCHEMA:
-{
-  "title": "string",
-  "short_description": "string",
-  "problem": "string",
-  "solution": "string",
-  "core_features": ["string"],
-  "mvp_scope": ["string"],
-  "suggested_tech_stack": ["string"],
-  "next_steps": ["string"]
-}
-
-RULES:
-- Be concise but insightful
-- Be realistic about MVP scope
-- Avoid buzzwords
-- Make it buildable by a small team
-- Do not include markdown
-- Do not include explanations
-- Do not include code blocks
-- Do not include extra text
-- Output ONLY valid JSON`;
 
     const userPrompt = `Refine this product idea into a structured plan:\n\n${idea}`;
 
-    // Initialize OpenAI client
-    const openai = getOpenAIClient();
-
-    // Call OpenAI API
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature: 0.7,
-      max_tokens: 1500,
-      response_format: { type: 'json_object' },
+    // Initialize Gemini model and generate
+    const model = getGeminiModel();
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 1500,
+        responseMimeType: 'application/json',
+      },
     });
 
-    const responseText = completion.choices[0]?.message?.content || '';
-
-    if (!responseText) {
+    const response = result.response;
+    if (!response?.text) {
       return res.status(500).json({
-        error: 'OpenAI API error',
-        message: 'Empty response from OpenAI',
+        error: 'Gemini API error',
+        message: 'Empty response from Gemini',
       });
     }
+
+    const responseText = response.text().trim();
 
     // Extract and parse JSON
     let parsedData = extractJSON(responseText);
@@ -147,7 +165,7 @@ RULES:
       } catch (parseError) {
         return res.status(500).json({
           error: 'JSON parsing error',
-          message: 'Failed to parse OpenAI response as JSON',
+          message: 'Failed to parse Gemini response as JSON',
           rawResponse: responseText.substring(0, 200),
         });
       }
@@ -193,10 +211,13 @@ RULES:
   } catch (error) {
     console.error('Error refining idea:', error);
 
-    // Handle specific OpenAI errors
-    if (error instanceof OpenAI.APIError) {
-      return res.status(error.status || 500).json({
-        error: 'OpenAI API error',
+    // Handle Gemini API fetch errors (HTTP errors from Google AI)
+    if (error instanceof GoogleGenerativeAIFetchError) {
+      const status = error.status && error.status >= 400 && error.status < 600
+        ? error.status
+        : 500;
+      return res.status(status).json({
+        error: 'Gemini API error',
         message: error.message || 'Failed to process request',
       });
     }
@@ -204,7 +225,7 @@ RULES:
     // Generic error
     res.status(500).json({
       error: 'Internal server error',
-      message: error.message || 'An unexpected error occurred',
+      message: error?.message || 'An unexpected error occurred',
     });
   }
 });

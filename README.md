@@ -2,11 +2,11 @@
 
 > Transform raw product ideas into structured, actionable product plans powered by advanced AI
 
-**AI Idea Refinery** is a full-stack web application that helps entrepreneurs, product managers, and founders turn rough ideas into well-structured product plans. Built with React and Express, it leverages OpenAI's GPT-4 to generate comprehensive product strategies including problem-solution fit, core features, MVP scope, tech stack recommendations, and actionable next steps.
+**AI Idea Refinery** is a full-stack web application that helps entrepreneurs, product managers, and founders turn rough ideas into well-structured product plans. Built with React and Express, it leverages Google's Gemini AI to generate comprehensive product strategies including problem-solution fit, core features, MVP scope, tech stack recommendations, and actionable next steps.
 
 ## ✨ Features
 
-- **🤖 AI-Powered Analysis**: Utilizes OpenAI GPT-4 to analyze and refine product ideas with strategic insights
+- **🤖 AI-Powered Analysis**: Utilizes Google Gemini to analyze and refine product ideas with strategic insights
 - **📋 Structured Output**: Generates comprehensive JSON output with 8 key components:
   - Product title and description
   - Problem statement
@@ -32,7 +32,7 @@
 ### Backend
 - **Node.js** - JavaScript runtime
 - **Express** - Web application framework
-- **OpenAI API** - GPT-4 for AI-powered product strategy
+- **Google Gemini API** - Gemini 1.5 Flash for AI-powered product strategy
 - **CORS** - Cross-origin resource sharing enabled
 
 ## 📋 Prerequisites
@@ -41,7 +41,7 @@ Before you begin, ensure you have the following installed:
 
 - **Node.js** (v18 or higher) - [Download](https://nodejs.org/)
 - **npm** (comes with Node.js) or **yarn**
-- **OpenAI API Key** - [Get one here](https://platform.openai.com/api-keys)
+- **Gemini API Key** - [Get one here](https://aistudio.google.com/app/apikey)
 
 ## 🚀 Setup Instructions
 
@@ -63,9 +63,9 @@ Before you begin, ensure you have the following installed:
    ```
 
 4. **Configure environment variables:**
-   Open `.env` and add your OpenAI API key:
+   Open `.env` and add your Gemini API key:
    ```env
-   OPENAI_API_KEY=sk-your-actual-api-key-here
+   GEMINI_API_KEY=your_gemini_api_key_here
    PORT=3001
    ```
 
@@ -139,7 +139,7 @@ Vercel will automatically detect changes and redeploy on every push to your main
    - Build command: `npm install`
    - Start command: `npm start`
 4. **Add environment variables:**
-   - `OPENAI_API_KEY`: Your OpenAI API key
+   - `GEMINI_API_KEY`: Your Gemini API key
    - `NODE_ENV`: `production`
 5. **Deploy**
 
@@ -151,7 +151,7 @@ Render automatically sets the `PORT` environment variable.
 2. **Deploy from GitHub repository**
 3. **Set root directory** to `backend`
 4. **Add environment variable:**
-   - `OPENAI_API_KEY`: Your OpenAI API key
+   - `GEMINI_API_KEY`: Your Gemini API key
 5. **Deploy**
 
 Railway automatically detects Node.js and handles deployment.
@@ -161,7 +161,7 @@ Railway automatically detects Node.js and handles deployment.
 ```
 ai-idea-refinery/
 ├── backend/
-│   ├── server.js          # Express server with OpenAI integration
+│   ├── server.js          # Express server with Gemini integration
 │   ├── package.json       # Backend dependencies and scripts
 │   ├── env.example        # Environment variables template
 │   ├── render.yaml        # Render deployment configuration
@@ -245,7 +245,7 @@ Refines a raw product idea into a structured product plan.
 ```json
 {
   "error": "Server configuration error",
-  "message": "OpenAI API key is not configured"
+  "message": "Gemini API key is not configured"
 }
 ```
 
@@ -289,21 +289,43 @@ Sarah can now use this structured plan to:
 - Start development with clear scope
 - Align team members on vision
 
-## 🛡️ Error Handling
+## 🛡️ Error Handling & Rate Limiting
 
-The application implements comprehensive error handling:
+The application implements comprehensive error handling and rate limiting:
 
+### Error Handling
 - **Input Validation**: Validates idea input format and content
-- **API Error Handling**: Gracefully handles OpenAI API failures and rate limits
+- **API Error Handling**: Gracefully handles Gemini API failures and rate limits
 - **JSON Parsing**: Robust JSON extraction and validation with fallback mechanisms
 - **Response Validation**: Ensures all required fields are present before returning
 - **User-Friendly Errors**: Displays clear, actionable error messages in the UI
 - **Network Errors**: Handles connection issues and timeouts gracefully
 
+### Rate Limiting
+- **Default Limits**: 10 requests per 15 minutes per IP address
+- **Configurable**: Customize via environment variables
+- **Protection**: Prevents API abuse and controls Gemini API costs
+- **Headers**: Returns rate limit information in response headers
+
+**Rate Limit Configuration:**
+```env
+RATE_LIMIT_WINDOW_MS=900000   # Time window in milliseconds (15 minutes)
+RATE_LIMIT_MAX_REQUESTS=10    # Max requests per window per IP
+```
+
+When rate limit is exceeded, the API returns:
+```json
+{
+  "error": "Too many requests",
+  "message": "Too many requests from this IP, please try again later.",
+  "retryAfter": 900
+}
+```
+
 ## 🎯 Key Features Explained
 
 ### AI-Powered Analysis
-The backend uses OpenAI's GPT-4 model with a carefully crafted system prompt that enforces:
+The backend uses Google's Gemini model with a carefully crafted system prompt that enforces:
 - Strict JSON output format
 - Practical, realistic MVP scoping
 - Actionable recommendations
@@ -343,4 +365,4 @@ Built with ❤️ for entrepreneurs and product builders.
 
 ---
 
-**Made with React + Express + OpenAI**
+**Made with React + Express + Google Gemini**

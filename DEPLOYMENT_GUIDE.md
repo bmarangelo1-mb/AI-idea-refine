@@ -33,7 +33,7 @@
    - **Plan:** Free (or choose paid for no spin-down)
 
 4. **Add Environment Variables:**
-   - `OPENAI_API_KEY` = `your_openai_api_key`
+   - `GEMINI_API_KEY` = `your_gemini_api_key`
    - `NODE_ENV` = `production`
 
 5. **Deploy:**
@@ -73,7 +73,7 @@
 
 4. **Add Environment Variables:**
    - Go to "Variables" tab
-   - Add `OPENAI_API_KEY` = `your_openai_api_key`
+   - Add `GEMINI_API_KEY` = `your_gemini_api_key`
    - Add `NODE_ENV` = `production`
 
 5. **Deploy:**
@@ -141,7 +141,7 @@
 
 5. **Set Secrets:**
    ```bash
-   fly secrets set OPENAI_API_KEY=your_api_key
+   fly secrets set GEMINI_API_KEY=your_api_key
    ```
 
 6. **Deploy:**
@@ -268,7 +268,7 @@ Frontend: Vercel (best performance, edge network)
 ## Environment Variables Checklist
 
 ### Backend (.env or Platform Settings):
-- ✅ `OPENAI_API_KEY` - Your OpenAI API key
+- ✅ `GEMINI_API_KEY` - Your Gemini API key
 - ✅ `PORT` - Auto-set by platform (usually)
 - ✅ `NODE_ENV` - Set to `production`
 
@@ -305,7 +305,7 @@ curl -X POST https://your-backend.onrender.com/api/refine \
 
 ### Backend Issues:
 
-**Problem:** "OPENAI_API_KEY is missing"
+**Problem:** "GEMINI_API_KEY is missing"
 - ✅ Check environment variables are set correctly
 - ✅ Restart the service after adding env vars
 
@@ -358,11 +358,11 @@ curl -X POST https://your-backend.onrender.com/api/refine \
 **Frontend (Vercel Free):**
 - $0/month (generous free tier)
 
-**OpenAI API:**
-- Pay-per-use (varies by usage)
-- GPT-4o-mini is cost-effective
+**Gemini API:**
+- Free tier available (Google AI Studio)
+- Pay-per-use beyond free tier
 
-**Total: ~$0/month for free tiers + OpenAI usage**
+**Total: ~$0/month for free tiers + Gemini usage**
 
 ---
 

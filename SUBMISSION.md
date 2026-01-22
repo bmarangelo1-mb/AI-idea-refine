@@ -27,7 +27,7 @@ The application accepts a raw product idea (a few sentences describing the conce
 
 **Backend:**
 - Node.js and Express for API server
-- OpenAI GPT-4 integration for AI-powered analysis
+- Google Gemini integration for AI-powered analysis
 - Comprehensive error handling and validation
 - CORS enabled for cross-origin requests
 
@@ -214,13 +214,13 @@ https://github.com/yourusername/ai-idea-refinery
 ## Additional Notes
 
 ### Security Considerations
-- OpenAI API key stored securely in environment variables
+- Gemini API key stored securely in environment variables
 - No API keys exposed in frontend code
 - CORS properly configured
 - Input validation on both frontend and backend
 
 ### Performance Optimizations
-- Lazy initialization of OpenAI client (prevents startup errors)
+- Lazy initialization of Gemini model (prevents startup errors)
 - Efficient JSON parsing with multiple fallback strategies
 - Skeleton loading states for better perceived performance
 - Optimized Vite build configuration

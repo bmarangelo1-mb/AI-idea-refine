@@ -289,7 +289,7 @@ function App() {
 
         {/* Footer */}
         <footer className="mt-12 sm:mt-16 lg:mt-20 text-center text-gray-500 text-sm">
-          <p className="tracking-wide">Powered by OpenAI • Built with React + Express</p>
+          <p className="tracking-wide">Powered by Google Gemini • Built with React + Express</p>
         </footer>
       </div>
     </div>
