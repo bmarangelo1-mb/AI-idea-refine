@@ -41,7 +41,7 @@ function getGeminiModel() {
   }
   const genAI = new GoogleGenerativeAI(apiKey);
   return genAI.getGenerativeModel({
-    model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+    model: process.env.GEMINI_MODEL || 'gemini-1.5-flash-002',
     systemInstruction: `You are a world-class startup product strategist.
 
 Take the user's raw idea and transform it into a clear, practical, well-scoped product plan.
@@ -182,9 +182,10 @@ app.post('/api/refine', async (req, res) => {
 
     const response = result.response;
     if (!response?.text) {
+      console.error('Empty response from Gemini');
       return res.status(500).json({
-        error: 'Gemini API error',
-        message: 'Empty response from Gemini',
+        error: 'Service error',
+        message: 'The service is temporarily unavailable. Please try again later.',
       });
     }
 
@@ -198,10 +199,11 @@ app.post('/api/refine', async (req, res) => {
       try {
         parsedData = JSON.parse(responseText);
       } catch (parseError) {
+        console.error('JSON parsing error:', parseError);
+        console.error('Response text:', responseText.substring(0, 500));
         return res.status(500).json({
-          error: 'JSON parsing error',
-          message: 'Failed to parse Gemini response as JSON',
-          rawResponse: responseText.substring(0, 200),
+          error: 'Processing error',
+          message: 'Unable to process the response. Please try again later.',
         });
       }
     }
@@ -221,9 +223,11 @@ app.post('/api/refine', async (req, res) => {
     const missingFields = requiredFields.filter((field) => !parsedData[field]);
 
     if (missingFields.length > 0) {
+      console.error('Missing required fields:', missingFields);
+      console.error('Parsed data:', JSON.stringify(parsedData, null, 2));
       return res.status(500).json({
-        error: 'Invalid response structure',
-        message: `Missing required fields: ${missingFields.join(', ')}`,
+        error: 'Processing error',
+        message: 'The response format is incomplete. Please try again later.',
       });
     }
 
@@ -251,16 +255,41 @@ app.post('/api/refine', async (req, res) => {
       const status = error.status && error.status >= 400 && error.status < 600
         ? error.status
         : 500;
-      return res.status(status).json({
-        error: 'Gemini API error',
-        message: error.message || 'Failed to process request',
+      
+      // User-friendly error messages based on status codes
+      let userMessage = 'The service is temporarily unavailable. Please try again later.';
+      
+      if (status === 429) {
+        userMessage = 'Too many requests. Please wait a moment and try again.';
+      } else if (status === 400) {
+        userMessage = 'Invalid request. Please check your input and try again.';
+      } else if (status === 401 || status === 403) {
+        userMessage = 'Service authentication error. Please try again later.';
+      } else if (status === 404) {
+        userMessage = 'Service endpoint not found. Please try again later.';
+      } else if (status >= 500) {
+        userMessage = 'The service is experiencing issues. Please try again later.';
+      }
+      
+      return res.status(status > 599 ? 500 : status).json({
+        error: 'Service error',
+        message: userMessage,
       });
     }
 
-    // Generic error
+    // Handle other specific error types
+    if (error?.message?.includes('GEMINI_API_KEY')) {
+      return res.status(500).json({
+        error: 'Configuration error',
+        message: 'Service configuration issue. Please try again later.',
+      });
+    }
+
+    // Generic error - always show user-friendly message
+    console.error('Unexpected error:', error);
     res.status(500).json({
-      error: 'Internal server error',
-      message: error?.message || 'An unexpected error occurred',
+      error: 'Service error',
+      message: 'An unexpected error occurred. Please try again later.',
     });
   }
 });
