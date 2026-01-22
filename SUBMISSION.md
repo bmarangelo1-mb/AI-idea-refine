@@ -181,23 +181,20 @@ The backend implements robust JSON extraction:
 
 **Live Application URL:**
 ```
-https://ai-idea-refinery.vercel.app
+https://ai-idea-refine.vercel.app/
 ```
 
 **Backend API URL:**
 ```
-https://ai-idea-refinery-backend.onrender.com
+https://ai-idea-refine.onrender.com
 ```
-
-*Note: Replace these placeholders with your actual deployed URLs once the application is live.*
-
 ---
 
 ## S4: GitHub Placeholder
 
 **Repository URL:**
 ```
-https://github.com/yourusername/ai-idea-refinery
+https://github.com/bmarangelo1-mb/AI-idea-refine
 ```
 
 *Note: Replace this placeholder with your actual GitHub repository URL.*
